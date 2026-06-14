@@ -7,6 +7,7 @@ import PartIndex from './components/PartIndex.jsx'
 import IntakeForm from './components/IntakeForm.jsx'
 import FolderScan from './components/FolderScan.jsx'
 import ManagePanel from './components/ManagePanel.jsx'
+import BasesSection from './components/BasesSection.jsx'
 
 const SAVE_COLORS = { idle: 'transparent', saving: '#5a4830', saved: '#5a7040', error: '#7a3828' }
 const SAVE_LABELS = { idle: '', saving: 'Saving…', saved: 'Saved ✓', error: 'Save failed' }
@@ -27,6 +28,11 @@ export default function App() {
         if (!data || !data.armies || data.armies.length === 0) {
           data = SEED
           await saveNotebook(SEED)
+        }
+        // Ensure bases field exists
+        if (!data.bases) {
+          data = { ...data, bases: { recipes: [], moodboard: [] } }
+          await saveNotebook(data)
         }
         setNotebook(data)
         setActiveArmy(data.armies[0]?.id ?? null)
@@ -72,6 +78,7 @@ export default function App() {
   }
 
   const showIndex = activeArmy === '__index__'
+  const showBases = activeArmy === '__bases__'
   const army = notebook.armies.find((a) => a.id === activeArmy)
 
   return (
@@ -109,6 +116,9 @@ export default function App() {
         <button onClick={() => setActiveArmy('__index__')} style={{ background: 'none', border: 'none', borderBottom: showIndex ? '2px solid #8a6a38' : '2px solid transparent', padding: '14px 22px', color: showIndex ? '#c8a96e' : '#4a3828', ...S.mono, fontSize: 14, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap' }}>
           By Part
         </button>
+        <button onClick={() => setActiveArmy('__bases__')} style={{ background: 'none', border: 'none', borderBottom: activeArmy === '__bases__' ? '2px solid #8a6a38' : '2px solid transparent', padding: '14px 22px', color: activeArmy === '__bases__' ? '#c8a96e' : '#4a3828', ...S.mono, fontSize: 14, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+          Bases & Terrain
+        </button>
       </div>
 
       {/* ── Content ── */}
@@ -121,6 +131,8 @@ export default function App() {
               </div>
               <PartIndex armies={notebook.armies} />
             </div>
+          : showBases
+          ? <BasesSection bases={notebook.bases || { recipes: [], moodboard: [] }} />
           : army && <ArmyChapter army={army} />}
       </div>
 

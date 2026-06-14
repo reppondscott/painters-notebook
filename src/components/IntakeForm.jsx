@@ -3,7 +3,7 @@ import { S, PART_ORDER, uid } from './shared.jsx'
 import { extractDriveId, driveUrl } from '../lib/drive.js'
 
 const BLANK = { scope: 'model', armyId: '', unitTypeId: '', modelId: '', name: '', source: '', type: 'workflow', part: '', imageUrl: '', notes: '', tags: '', stepsRaw: '', mixRaw: '' }
-const SCOPES = [{ value: 'model', label: 'Model recipe' }, { value: 'army', label: 'Army-wide' }, { value: 'moodboard', label: 'Moodboard' }]
+const SCOPES = [{ value: 'model', label: 'Model recipe' }, { value: 'army', label: 'Army-wide' }, { value: 'moodboard', label: 'Moodboard' }, { value: 'bases', label: 'Bases & Terrain' }]
 
 export default function IntakeForm({ notebook, onSubmit, onClose }) {
   const [f, setF] = useState(BLANK)
@@ -39,6 +39,24 @@ export default function IntakeForm({ notebook, onSubmit, onClose }) {
       return
     }
 
+    if (f.scope === 'bases') {
+      const isMoodboard = f.type === 'moodboard'
+      if (isMoodboard) {
+        const entry = { id: 'mb-' + uid(), source: f.name.trim(), platform: f.source.trim(), notes: f.notes.trim(), tags, imageId }
+        onSubmit((nb) => ({ ...nb, bases: { ...nb.bases, moodboard: [...(nb.bases?.moodboard || []), entry] } }))
+      } else {
+        let recipe = { id: 'r-' + uid(), name: f.name.trim(), type: f.type, source: f.source.trim(), part: 'bases', imageId, notes: f.notes.trim(), tags }
+        if (f.type === 'workflow') {
+          recipe.steps = f.stepsRaw.split('\n').map((line) => { const [label, ...rest] = line.split(':'); return { label: label.trim(), detail: rest.join(':').trim() } }).filter((s) => s.label)
+        } else {
+          recipe.mix = f.mixRaw.split('\n').map((line) => { const m = line.match(/^(.+?)\s*[x×*]?\s*(\d+\.?\d*)\s*$/); return m ? { paint: m[1].trim(), parts: parseFloat(m[2]) } : null }).filter(Boolean)
+        }
+        onSubmit((nb) => ({ ...nb, bases: { ...nb.bases, recipes: [...(nb.bases?.recipes || []), recipe] } }))
+      }
+      onClose()
+      return
+    }
+
     let recipe = { id: 'r-' + uid(), name: f.name.trim(), type: f.type, source: f.source.trim(), part: f.part, imageId, notes: f.notes.trim(), tags }
     if (f.type === 'workflow') {
       recipe.steps = f.stepsRaw.split('\n').map((line) => { const [label, ...rest] = line.split(':'); return { label: label.trim(), detail: rest.join(':').trim() } }).filter((s) => s.label)
@@ -64,7 +82,10 @@ export default function IntakeForm({ notebook, onSubmit, onClose }) {
     onClose()
   }
 
-  const valid = f.armyId && f.name.trim() && (f.scope !== 'model' || (f.unitTypeId && f.modelId))
+  const valid = f.name.trim() && (
+    f.scope === 'bases' ||
+    (f.armyId && (f.scope !== 'model' || (f.unitTypeId && f.modelId)))
+  )
   const row = { marginBottom: 14 }
 
   return (
@@ -85,6 +106,7 @@ export default function IntakeForm({ notebook, onSubmit, onClose }) {
         </div>
       </div>
 
+      {f.scope !== 'bases' && (
       <div style={row}>
         <label style={S.label}>Army</label>
         <select value={f.armyId} onChange={(e) => set('armyId', e.target.value)} style={S.select}>
@@ -92,6 +114,7 @@ export default function IntakeForm({ notebook, onSubmit, onClose }) {
           {notebook.armies.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
         </select>
       </div>
+      )}
 
       {f.scope === 'model' && f.armyId && (
         <>

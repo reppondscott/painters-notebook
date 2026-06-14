@@ -1,4 +1,8 @@
 export const SEED = {
+  bases: {
+    recipes: [],
+    moodboard: [],
+  },
   armies: [
     {
       id: 'dark-angels',
