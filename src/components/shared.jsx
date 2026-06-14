@@ -79,8 +79,8 @@ export function RecipeCard({ recipe, showMeta }) {
     <div style={{ background: '#1e160e', border: '1px solid #3a2c1e', borderRadius: 4, padding: '10px 12px', marginBottom: 8 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', cursor: 'pointer' }} onClick={() => setOpen(!open)}>
         <div>
-          <div style={{ color: '#d4b483', ...S.mono, fontSize: 13, fontWeight: 700 }}>{recipe.name}</div>
-          <div style={{ color: '#6a5840', fontSize: 11, marginTop: 2 }}>
+          <div style={{ color: '#d4b483', ...S.mono, fontSize: 15, fontWeight: 700 }}>{recipe.name}</div>
+          <div style={{ color: '#6a5840', fontSize: 13, marginTop: 2 }}>
             {recipe.source} · {recipe.type === 'mix' ? 'Mix ratio' : 'Workflow'}
             {showMeta && recipe._army && <span style={{ color: '#4a3828', marginLeft: 8 }}>— {recipe._army}{recipe._model ? ` / ${recipe._model}` : ''}</span>}
           </div>

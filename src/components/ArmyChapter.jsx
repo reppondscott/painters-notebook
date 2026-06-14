@@ -37,8 +37,8 @@ function ModelEntry({ model }) {
     <div style={{ marginBottom: 6 }}>
       <div onClick={() => has && setOpen(!open)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px', background: open ? '#1a1208' : 'transparent', border: '1px solid', borderColor: open ? '#3a2c1e' : '#251c12', borderRadius: 3, cursor: has ? 'pointer' : 'default' }}>
         <span style={{ color: '#5a4830', fontSize: 10 }}>◆</span>
-        <span style={{ color: '#b89560', ...S.mono, fontSize: 13, flex: 1 }}>{model.name}</span>
-        {model.recipes.length > 0 && <span style={{ color: '#5a7040', fontSize: 10, ...S.mono }}>{model.recipes.length} recipe{model.recipes.length !== 1 ? 's' : ''}</span>}
+        <span style={{ color: '#b89560', ...S.mono, fontSize: 15, flex: 1 }}>{model.name}</span>
+        {model.recipes.length > 0 && <span style={{ color: '#5a7040', fontSize: 12, ...S.mono }}>{model.recipes.length} recipe{model.recipes.length !== 1 ? 's' : ''}</span>}
         {has && <span style={{ color: '#4a3828', fontSize: 12 }}>{open ? '▲' : '▼'}</span>}
       </div>
       {open && (
@@ -58,7 +58,7 @@ function UnitTypeSection({ section, accentColor }) {
   return (
     <div style={{ marginBottom: 16 }}>
       <div onClick={() => setOpen(!open)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '1px solid #3a2c1e', cursor: 'pointer', marginBottom: 8 }}>
-        <span style={{ ...S.mono, fontSize: 10, letterSpacing: '0.15em', textTransform: 'uppercase', color: accentColor, fontWeight: 700 }}>{section.label}</span>
+        <span style={{ ...S.mono, fontSize: 12, letterSpacing: '0.15em', textTransform: 'uppercase', color: accentColor, fontWeight: 700 }}>{section.label}</span>
         <span style={{ flex: 1, height: 1, background: '#2a1f14' }} />
         {count > 0 && <span style={{ color: '#5a7040', fontSize: 10, ...S.mono }}>{count} recipe{count !== 1 ? 's' : ''}</span>}
         <span style={{ color: '#4a3828', fontSize: 11 }}>{open ? '▲' : '▼'}</span>
@@ -80,13 +80,13 @@ export default function ArmyChapter({ army }) {
 
   return (
     <div>
-      <div style={{ borderBottom: `2px solid ${army.accentColor}`, marginBottom: 20, paddingBottom: 12 }}>
-        <div style={{ ...S.mono, fontSize: 20, fontWeight: 700, color: army.accentLight, letterSpacing: '0.05em', textTransform: 'uppercase' }}>{army.name}</div>
-        <div style={{ color: '#5a4830', fontSize: 11, marginTop: 3, fontStyle: 'italic' }}>{army.subtitle}</div>
+      <div style={{ borderBottom: `2px solid ${army.accentColor}`, marginBottom: 24, paddingBottom: 14 }}>
+        <div style={{ ...S.mono, fontSize: 26, fontWeight: 700, color: army.accentLight, letterSpacing: '0.05em', textTransform: 'uppercase' }}>{army.name}</div>
+        <div style={{ color: '#5a4830', fontSize: 13, marginTop: 4, fontStyle: 'italic' }}>{army.subtitle}</div>
       </div>
-      <div style={{ display: 'flex', gap: 0, marginBottom: 20, borderBottom: '1px solid #2a1f14' }}>
+      <div style={{ display: 'flex', gap: 0, marginBottom: 24, borderBottom: '1px solid #2a1f14' }}>
         {tabs.map((t) => (
-          <button key={t.id} onClick={() => setTab(t.id)} style={{ background: 'none', border: 'none', borderBottom: tab === t.id ? `2px solid ${army.accentLight}` : '2px solid transparent', padding: '6px 14px', marginBottom: -1, color: tab === t.id ? army.accentLight : '#5a4830', ...S.mono, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer' }}>
+          <button key={t.id} onClick={() => setTab(t.id)} style={{ background: 'none', border: 'none', borderBottom: tab === t.id ? `2px solid ${army.accentLight}` : '2px solid transparent', padding: '10px 18px', marginBottom: -1, color: tab === t.id ? army.accentLight : '#5a4830', ...S.mono, fontSize: 13, letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer' }}>
             {t.label}
           </button>
         ))}
