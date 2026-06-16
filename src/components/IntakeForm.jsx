@@ -2,13 +2,13 @@ import { useState } from 'react'
 import { S, PART_ORDER, uid } from './shared.jsx'
 import { extractDriveId, driveUrl } from '../lib/drive.js'
 
-const BLANK = { scope: 'model', armyId: '', unitTypeId: '', modelId: '', name: '', source: '', type: 'workflow', part: '', imageUrl: '', notes: '', tags: '', stepsRaw: '', mixRaw: '' }
+const BLANK = { scope: 'model', armyId: '', unitTypeId: '', modelId: '', name: '', source: '', type: 'workflow', part: '', imageUrls: [''], notes: '', tags: '', stepsRaw: '', mixRaw: '' }
 const SCOPES = [{ value: 'model', label: 'Model recipe' }, { value: 'army', label: 'Army-wide' }, { value: 'moodboard', label: 'Moodboard' }, { value: 'bases', label: 'Bases & Terrain' }]
 
 export default function IntakeForm({ notebook, onSubmit, onClose }) {
   const [f, setF] = useState(BLANK)
-  const [preview, setPreview] = useState(null)
-  const [previewErr, setPreviewErr] = useState(false)
+  const [previews, setPreviews] = useState({})
+  const [previewErrors, setPreviewErrors] = useState({})
 
   const set = (k, v) => setF((prev) => {
     const next = { ...prev, [k]: v }
@@ -20,49 +20,53 @@ export default function IntakeForm({ notebook, onSubmit, onClose }) {
   const army = notebook.armies.find((a) => a.id === f.armyId)
   const unitType = army?.unitTypes.find((u) => u.id === f.unitTypeId)
 
-  const handleImageUrl = (v) => {
-    set('imageUrl', v)
-    setPreviewErr(false)
-    const id = extractDriveId(v)
-    setPreview(id ? driveUrl(id) : null)
+  // Image URL handlers
+  const setImageUrl = (idx, val) => {
+    const urls = [...f.imageUrls]
+    urls[idx] = val
+    set('imageUrls', urls)
+    const id = extractDriveId(val)
+    setPreviews((p) => ({ ...p, [idx]: id ? driveUrl(id) : null }))
+    setPreviewErrors((e) => ({ ...e, [idx]: false }))
   }
 
-  const handleSubmit = () => {
-    if (!f.armyId || !f.name.trim()) return
-    const imageId = extractDriveId(f.imageUrl) || null
+  const addImageUrl = () => set('imageUrls', [...f.imageUrls, ''])
+  const removeImageUrl = (idx) => {
+    const urls = f.imageUrls.filter((_, i) => i !== idx)
+    set('imageUrls', urls.length ? urls : [''])
+    setPreviews((p) => { const n = { ...p }; delete n[idx]; return n })
+  }
+
+  const buildRecipe = (extraFields = {}) => {
+    const imageIds = f.imageUrls.map((u) => extractDriveId(u)).filter(Boolean)
     const tags = f.tags.split(',').map((t) => t.trim()).filter(Boolean)
-
-    if (f.scope === 'moodboard') {
-      const entry = { id: 'mb-' + uid(), source: f.name.trim(), platform: f.source.trim(), notes: f.notes.trim(), tags, imageId }
-      onSubmit((nb) => ({ ...nb, armies: nb.armies.map((a) => a.id !== f.armyId ? a : { ...a, moodboard: [...a.moodboard, entry] }) }))
-      onClose()
-      return
-    }
-
-    if (f.scope === 'bases') {
-      const isMoodboard = f.type === 'moodboard'
-      if (isMoodboard) {
-        const entry = { id: 'mb-' + uid(), source: f.name.trim(), platform: f.source.trim(), notes: f.notes.trim(), tags, imageId }
-        onSubmit((nb) => ({ ...nb, bases: { ...nb.bases, moodboard: [...(nb.bases?.moodboard || []), entry] } }))
-      } else {
-        let recipe = { id: 'r-' + uid(), name: f.name.trim(), type: f.type, source: f.source.trim(), part: 'bases', imageId, notes: f.notes.trim(), tags }
-        if (f.type === 'workflow') {
-          recipe.steps = f.stepsRaw.split('\n').map((line) => { const [label, ...rest] = line.split(':'); return { label: label.trim(), detail: rest.join(':').trim() } }).filter((s) => s.label)
-        } else {
-          recipe.mix = f.mixRaw.split('\n').map((line) => { const m = line.match(/^(.+?)\s*[x×*]?\s*(\d+\.?\d*)\s*$/); return m ? { paint: m[1].trim(), parts: parseFloat(m[2]) } : null }).filter(Boolean)
-        }
-        onSubmit((nb) => ({ ...nb, bases: { ...nb.bases, recipes: [...(nb.bases?.recipes || []), recipe] } }))
-      }
-      onClose()
-      return
-    }
-
-    let recipe = { id: 'r-' + uid(), name: f.name.trim(), type: f.type, source: f.source.trim(), part: f.part, imageId, notes: f.notes.trim(), tags }
+    let recipe = { id: 'r-' + uid(), name: f.name.trim(), type: f.type, source: f.source.trim(), part: f.part, imageIds, notes: f.notes.trim(), tags, ...extraFields }
     if (f.type === 'workflow') {
       recipe.steps = f.stepsRaw.split('\n').map((line) => { const [label, ...rest] = line.split(':'); return { label: label.trim(), detail: rest.join(':').trim() } }).filter((s) => s.label)
     } else {
       recipe.mix = f.mixRaw.split('\n').map((line) => { const m = line.match(/^(.+?)\s*[x×*]?\s*(\d+\.?\d*)\s*$/); return m ? { paint: m[1].trim(), parts: parseFloat(m[2]) } : null }).filter(Boolean)
     }
+    return recipe
+  }
+
+  const handleSubmit = () => {
+    if (!f.name.trim()) return
+    const imageIds = f.imageUrls.map((u) => extractDriveId(u)).filter(Boolean)
+    const tags = f.tags.split(',').map((t) => t.trim()).filter(Boolean)
+
+    if (f.scope === 'moodboard') {
+      const entry = { id: 'mb-' + uid(), source: f.name.trim(), platform: f.source.trim(), notes: f.notes.trim(), tags, imageIds }
+      onSubmit((nb) => ({ ...nb, armies: nb.armies.map((a) => a.id !== f.armyId ? a : { ...a, moodboard: [...a.moodboard, entry] }) }))
+      onClose(); return
+    }
+
+    if (f.scope === 'bases') {
+      const recipe = buildRecipe({ part: 'bases' })
+      onSubmit((nb) => ({ ...nb, bases: { ...nb.bases, recipes: [...(nb.bases?.recipes || []), recipe] } }))
+      onClose(); return
+    }
+
+    const recipe = buildRecipe()
 
     if (f.scope === 'army') {
       onSubmit((nb) => ({ ...nb, armies: nb.armies.map((a) => a.id !== f.armyId ? a : { ...a, sharedRecipes: [...a.sharedRecipes, recipe] }) }))
@@ -89,7 +93,7 @@ export default function IntakeForm({ notebook, onSubmit, onClose }) {
   const row = { marginBottom: 14 }
 
   return (
-    <div style={{ position: 'fixed', top: 0, right: 0, width: 340, height: '100vh', background: '#0e0a06', borderLeft: '1px solid #2a1f14', overflowY: 'auto', zIndex: 1500, padding: '20px 20px 40px', boxSizing: 'border-box' }}>
+    <div style={{ position: 'fixed', top: 0, right: 0, width: 360, height: '100vh', background: '#0e0a06', borderLeft: '1px solid #2a1f14', overflowY: 'auto', zIndex: 1500, padding: '20px 20px 40px', boxSizing: 'border-box' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <div style={{ ...S.mono, fontSize: 11, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#6a5438' }}>Add Entry</div>
         <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#5a4830', fontSize: 18, cursor: 'pointer' }}>✕</button>
@@ -97,7 +101,7 @@ export default function IntakeForm({ notebook, onSubmit, onClose }) {
 
       <div style={row}>
         <label style={S.label}>Entry type</label>
-        <div style={{ display: 'flex', gap: 6 }}>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           {SCOPES.map((o) => (
             <button key={o.value} onClick={() => set('scope', o.value)} style={{ ...S.mono, fontSize: 10, padding: '5px 10px', border: '1px solid', borderRadius: 3, cursor: 'pointer', letterSpacing: '0.05em', textTransform: 'uppercase', background: f.scope === o.value ? '#2d5a27' : '#1a1208', borderColor: f.scope === o.value ? '#4a7c3f' : '#3a2c1e', color: f.scope === o.value ? '#c8a96e' : '#6a5438' }}>
               {o.label}
@@ -107,13 +111,13 @@ export default function IntakeForm({ notebook, onSubmit, onClose }) {
       </div>
 
       {f.scope !== 'bases' && (
-      <div style={row}>
-        <label style={S.label}>Army</label>
-        <select value={f.armyId} onChange={(e) => set('armyId', e.target.value)} style={S.select}>
-          <option value="">— select army —</option>
-          {notebook.armies.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-        </select>
-      </div>
+        <div style={row}>
+          <label style={S.label}>Army</label>
+          <select value={f.armyId} onChange={(e) => set('armyId', e.target.value)} style={S.select}>
+            <option value="">— select army —</option>
+            {notebook.armies.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+          </select>
+        </div>
       )}
 
       {f.scope === 'model' && f.armyId && (
@@ -181,11 +185,25 @@ export default function IntakeForm({ notebook, onSubmit, onClose }) {
         </>
       )}
 
+      {/* Multi-image input */}
       <div style={row}>
-        <label style={S.label}>Drive image link or file ID</label>
-        <input value={f.imageUrl} onChange={(e) => handleImageUrl(e.target.value)} style={S.input} placeholder="https://drive.google.com/file/d/…" />
-        {preview && !previewErr && <img src={preview} alt="" onError={() => setPreviewErr(true)} style={{ marginTop: 8, width: '100%', maxHeight: 120, objectFit: 'cover', borderRadius: 3, border: '1px solid #3a2c1e' }} />}
-        {previewErr && <div style={{ marginTop: 6, color: '#7a3828', fontSize: 10, ...S.mono }}>Preview unavailable — check permissions</div>}
+        <label style={S.label}>Drive images ({f.imageUrls.length})</label>
+        {f.imageUrls.map((url, idx) => (
+          <div key={idx} style={{ marginBottom: 8 }}>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              <input value={url} onChange={(e) => setImageUrl(idx, e.target.value)} style={{ ...S.input, flex: 1 }} placeholder="https://drive.google.com/file/d/…" />
+              {f.imageUrls.length > 1 && (
+                <button onClick={() => removeImageUrl(idx)} style={{ background: 'none', border: '1px solid #3a2c1e', borderRadius: 3, color: '#7a3828', cursor: 'pointer', padding: '4px 8px', fontSize: 12, flexShrink: 0 }}>✕</button>
+              )}
+            </div>
+            {previews[idx] && !previewErrors[idx] && (
+              <img src={previews[idx]} alt="" onError={() => setPreviewErrors((e) => ({ ...e, [idx]: true }))}
+                style={{ marginTop: 6, width: '100%', maxHeight: 100, objectFit: 'cover', borderRadius: 3, border: '1px solid #3a2c1e' }} />
+            )}
+            {previewErrors[idx] && <div style={{ marginTop: 4, color: '#7a3828', fontSize: 10, ...S.mono }}>Preview unavailable</div>}
+          </div>
+        ))}
+        <button onClick={addImageUrl} style={{ ...S.btnGhost, fontSize: 10, padding: '5px 12px', marginTop: 4 }}>+ Add image</button>
       </div>
 
       <div style={row}>

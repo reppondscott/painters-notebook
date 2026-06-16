@@ -35,6 +35,31 @@ export default function App() {
           data = { ...data, bases: { recipes: [], moodboard: [] } }
           await saveNotebook(data)
         }
+
+        // Migrate imageId -> imageIds on all recipes
+        let needsMigration = false
+        const migrateRecipes = (recipes) => recipes.map((r) => {
+          if (r.imageId !== undefined && !r.imageIds) {
+            needsMigration = true
+            const { imageId, ...rest } = r
+            return { ...rest, imageIds: imageId ? [imageId] : [] }
+          }
+          if (!r.imageIds) { needsMigration = true; return { ...r, imageIds: [] } }
+          return r
+        })
+        data = {
+          ...data,
+          bases: { ...data.bases, recipes: migrateRecipes(data.bases?.recipes || []) },
+          armies: data.armies.map((a) => ({
+            ...a,
+            sharedRecipes: migrateRecipes(a.sharedRecipes || []),
+            unitTypes: a.unitTypes.map((ut) => ({
+              ...ut,
+              models: ut.models.map((m) => ({ ...m, recipes: migrateRecipes(m.recipes || []) })),
+            })),
+          })),
+        }
+        if (needsMigration) await saveNotebook(data)
         setNotebook(data)
         setActiveArmy(data.armies[0]?.id ?? null)
       } catch (e) {
