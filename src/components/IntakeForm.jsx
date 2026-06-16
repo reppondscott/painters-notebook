@@ -22,18 +22,22 @@ export default function IntakeForm({ notebook, onSubmit, onClose }) {
 
   // Image URL handlers
   const setImageUrl = (idx, val) => {
-    const urls = [...f.imageUrls]
-    urls[idx] = val
-    set('imageUrls', urls)
+    setF((prev) => {
+      const urls = [...prev.imageUrls]
+      urls[idx] = val
+      return { ...prev, imageUrls: urls }
+    })
     const id = extractDriveId(val)
     setPreviews((p) => ({ ...p, [idx]: id ? driveUrl(id) : null }))
     setPreviewErrors((e) => ({ ...e, [idx]: false }))
   }
 
-  const addImageUrl = () => set('imageUrls', [...f.imageUrls, ''])
+  const addImageUrl = () => setF((prev) => ({ ...prev, imageUrls: [...prev.imageUrls, ''] }))
   const removeImageUrl = (idx) => {
-    const urls = f.imageUrls.filter((_, i) => i !== idx)
-    set('imageUrls', urls.length ? urls : [''])
+    setF((prev) => {
+      const urls = prev.imageUrls.filter((_, i) => i !== idx)
+      return { ...prev, imageUrls: urls.length ? urls : [''] }
+    })
     setPreviews((p) => { const n = { ...p }; delete n[idx]; return n })
   }
 
