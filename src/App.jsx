@@ -24,10 +24,11 @@ export default function App() {
     async function init() {
       try {
         let data = await loadNotebook()
-        // If empty armies array, seed it
-        if (!data || !data.armies || data.armies.length === 0) {
-          data = SEED
-          await saveNotebook(SEED)
+        // Version check — reseed if structure is outdated
+        const currentVersion = 2
+        if (!data || !data.armies || data.armies.length === 0 || !data._version || data._version < currentVersion) {
+          data = { ...SEED, _version: currentVersion }
+          await saveNotebook(data)
         }
         // Ensure bases field exists
         if (!data.bases) {
